@@ -31,6 +31,7 @@ const createInitialGrid = (): Grid => {
 };
 
 function App() {
+  console.log("🚀 App: Initializing Metropolis...");
   // --- Game State ---
   const [gameStarted, setGameStarted] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(true);

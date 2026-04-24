@@ -967,6 +967,9 @@ const IsoMap: React.FC<IsoMapProps> = ({
   hasPackage,
   challengeActive
 }) => {
+  useEffect(() => {
+    console.log("🏙️ IsoMap: 3D Scene Mounted");
+  }, []);
   const [hoveredTile, setHoveredTile] = useState<{x: number, y: number} | null>(null);
 
   const handleHover = useCallback((x: number, y: number) => {

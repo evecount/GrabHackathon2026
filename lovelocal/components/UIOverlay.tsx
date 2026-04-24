@@ -6,7 +6,7 @@ import React, { useEffect, useRef } from 'react';
 import { BuildingType, CityStats, AIGoal, NewsItem, Mission } from '../types';
 import { BUILDINGS } from '../constants';
 import { Package, Truck, Radar, CheckCircle2, ChevronRight, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface UIOverlayProps {
   stats: CityStats;
