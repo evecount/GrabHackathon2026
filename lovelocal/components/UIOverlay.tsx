@@ -20,6 +20,8 @@ interface UIOverlayProps {
   availableMissions: Mission[];
   onAcceptMission: (m: Mission) => void;
   onSearchPostalCode: (postalCode: string) => void;
+  onIssueChallenge: () => void;
+  challengeActive: boolean;
 }
 
 const tools = [
@@ -79,7 +81,9 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   aiEnabled,
   availableMissions,
   onAcceptMission,
-  onSearchPostalCode
+  onSearchPostalCode,
+  onIssueChallenge,
+  challengeActive
 }) => {
   const newsRef = useRef<HTMLDivElement>(null);
   const [showMissions, setShowMissions] = React.useState(false);
@@ -161,6 +165,22 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                         {availableMissions.length}
                     </span>
                 )}
+            </button>
+
+            <button 
+                onClick={onIssueChallenge}
+                disabled={challengeActive}
+                className={`flex gap-2 items-center p-2 md:p-3 rounded-xl border shadow-lg backdrop-blur-md transition-all ${
+                    challengeActive 
+                    ? 'bg-slate-700 border-slate-600 text-slate-400 cursor-not-allowed' 
+                    : 'bg-[#00b14f] border-green-400 text-white hover:bg-[#009241] active:scale-95'
+                }`}
+            >
+                <Truck className={`w-5 h-5 md:w-6 md:h-6 ${challengeActive ? 'animate-bounce' : ''}`} />
+                <div className="flex flex-col items-start leading-tight">
+                    <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-widest">Challenge</span>
+                    <span className="text-xs md:text-sm font-black">{challengeActive ? 'Active!' : 'Issue 40+'}</span>
+                </div>
             </button>
         </div>
 

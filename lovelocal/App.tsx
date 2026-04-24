@@ -50,6 +50,7 @@ function App() {
   const [controllableMission, setControllableMission] = useState<Mission | null>(null);
   const [hasPackage, setHasPackage] = useState(false);
   const [dronePos, setDronePos] = useState<[number, number]>([0, 0]);
+  const [challengeActive, setChallengeActive] = useState(false);
   
   // Refs for accessing state inside intervals without dependencies
   const gridRef = useRef(grid);
@@ -354,6 +355,16 @@ function App() {
     }
   };
 
+  const handleIssueChallenge = () => {
+    setChallengeActive(true);
+    addNewsItem({
+      id: Date.now().toString(),
+      text: "🚨 CHALLENGE ISSUED: 40 Grab Drivers are racing to deliver!",
+      type: 'positive'
+    });
+    setTimeout(() => setChallengeActive(false), 10000); // 10 second boost
+  };
+
   const handleStart = (enabled: boolean) => {
     setAiEnabled(enabled);
     setGameStarted(true);
@@ -373,6 +384,7 @@ function App() {
         onDroneMove={handleDroneMove}
         dronePos={dronePos}
         hasPackage={hasPackage}
+        challengeActive={challengeActive}
       />
       
       {/* Start Screen Overlay */}
@@ -394,6 +406,8 @@ function App() {
           availableMissions={availableMissions}
           onAcceptMission={handleAcceptMission}
           onSearchPostalCode={handleSearchPostalCode}
+          onIssueChallenge={handleIssueChallenge}
+          challengeActive={challengeActive}
         />
       )}
 

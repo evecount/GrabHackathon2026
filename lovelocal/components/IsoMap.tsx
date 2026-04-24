@@ -460,9 +460,9 @@ const ControllableDrone = ({ onPositionChange, mission }: {
   );
 };
 
-const carColors = ['#ef4444', '#3b82f6', '#eab308', '#ffffff', '#1f2937', '#f97316'];
+const carColors = ['#00b14f', '#009a44', '#00c558']; // Varied Grab Greens
 
-const TrafficSystem = ({ grid }: { grid: Grid }) => {
+const TrafficSystem = ({ grid, speedMultiplier = 1 }: { grid: Grid, speedMultiplier?: number }) => {
   const roadTiles = useMemo(() => {
     const roads: {x: number, y: number}[] = [];
     grid.forEach(row => row.forEach(tile => {
@@ -471,10 +471,11 @@ const TrafficSystem = ({ grid }: { grid: Grid }) => {
     return roads;
   }, [grid]);
 
-  const carCount = Math.min(roadTiles.length, 30);
+  const carCount = 40;
   const carsRef = useRef<THREE.InstancedMesh>(null);
   const carsState = useRef<Float32Array>(new Float32Array(0)); 
   const dummy = useMemo(() => new THREE.Object3D(), []);
+  const boxRef = useRef<THREE.InstancedMesh>(null);
   const colors = useMemo(() => new Float32Array(0), []);
 
   useEffect(() => {
@@ -498,6 +499,11 @@ const TrafficSystem = ({ grid }: { grid: Grid }) => {
     if (carsRef.current) {
         carsRef.current.instanceColor = new THREE.InstancedBufferAttribute(newColors, 3);
     }
+    if (boxRef.current) {
+        // Boxes are all white
+        const boxColors = new Float32Array(carCount * 3).fill(1);
+        boxRef.current.instanceColor = new THREE.InstancedBufferAttribute(boxColors, 3);
+    }
   }, [roadTiles, carCount]);
 
   useFrame(() => {
@@ -510,7 +516,7 @@ const TrafficSystem = ({ grid }: { grid: Grid }) => {
       let tarX = carsState.current[idx+2];
       let tarY = carsState.current[idx+3];
       let progress = carsState.current[idx+4];
-      const speed = carsState.current[idx+5];
+      const speed = carsState.current[idx+5] * speedMultiplier;
 
       progress += speed;
 
@@ -574,16 +580,28 @@ const TrafficSystem = ({ grid }: { grid: Grid }) => {
       
       dummy.updateMatrix();
       carsRef.current.setMatrixAt(i, dummy.matrix);
+
+      // Cargo Box transformation
+      dummy.position.y += 0.1;
+      dummy.scale.set(0.2, 0.15, 0.2);
+      dummy.updateMatrix();
+      boxRef.current.setMatrixAt(i, dummy.matrix);
     }
     carsRef.current.instanceMatrix.needsUpdate = true;
+    boxRef.current.instanceMatrix.needsUpdate = true;
   });
 
   if (roadTiles.length < 2) return null;
 
   return (
-    <instancedMesh ref={carsRef} args={[boxGeo, undefined, carCount]} castShadow>
-      <meshStandardMaterial roughness={0.5} metalness={0.3} />
-    </instancedMesh>
+    <group>
+      <instancedMesh ref={carsRef} args={[boxGeo, undefined, carCount]} castShadow>
+        <meshStandardMaterial roughness={0.5} metalness={0.3} />
+      </instancedMesh>
+      <instancedMesh ref={boxRef} args={[boxGeo, undefined, carCount]} castShadow>
+        <meshStandardMaterial color="white" roughness={0.9} />
+      </instancedMesh>
+    </group>
   );
 };
 
@@ -933,6 +951,7 @@ interface IsoMapProps {
   onDroneMove: (pos: [number, number]) => void;
   dronePos: [number, number];
   hasPackage: boolean;
+  challengeActive: boolean;
 }
 
 const IsoMap: React.FC<IsoMapProps> = ({ 
@@ -945,7 +964,8 @@ const IsoMap: React.FC<IsoMapProps> = ({
   controllableMission,
   onDroneMove,
   dronePos,
-  hasPackage
+  hasPackage,
+  challengeActive
 }) => {
   const [hoveredTile, setHoveredTile] = useState<{x: number, y: number} | null>(null);
 
@@ -1022,7 +1042,7 @@ const IsoMap: React.FC<IsoMapProps> = ({
 
             {/* Visual Systems */}
             <group raycast={() => null}>
-              <TrafficSystem grid={grid} />
+              <TrafficSystem grid={grid} speedMultiplier={challengeActive ? 2 : 1} />
               <PopulationSystem population={population} grid={grid} />
               
               {activeMissions.map(m => (
