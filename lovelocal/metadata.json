@@ -1,0 +1,6 @@
+{
+  "name": "LoveLocal",
+  "description": "Manage a virtual metropolis and fulfill tasks as a little drone",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
