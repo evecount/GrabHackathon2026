@@ -66,4 +66,13 @@ export const BUILDINGS: Record<BuildingType, BuildingConfig> = {
     popGen: 1,
     incomeGen: 0,
   },
+  [BuildingType.Hawker]: {
+    type: BuildingType.Hawker,
+    cost: 150,
+    name: 'Hawker Centre',
+    description: '+$25/day. Delicious!',
+    color: '#f97316', // orange-500
+    popGen: 2,
+    incomeGen: 25,
+  },
 };

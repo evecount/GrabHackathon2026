@@ -5,9 +5,9 @@ A gamified 3D city-building experience powered by **Grab Maps API** and **Gemini
 LoveLocal turns Singapore neighborhoods into interactive 3D maps where you can control a drone to fly packages (like those delicious noodle stalls!) from point A to point B. 
 
 ## ✨ Key Features
-- **Hyperlocal World Builder**: Enter any Singapore Postal Code and watch the city manifest in 3D using real-world POI data from Grab.
-- **Controllable Grab Drone**: Take direct control of a drone with Arrow Keys/WASD to complete food and package missions.
-- **Singapore Aesthetics**: Iconic HDB-style building models, Hawker Centres, and a Singapore Island background.
+- **Singapore Flight Experience**: Take direct control of a Grab drone with **Arrow Keys/WASD** and fly over a 3D metropolis that mirrors real Singapore neighborhoods.
+- **Hyperlocal World Builder**: Enter any Singapore Postal Code and watch the city manifest in 3D using real-world POI data (Hawker Centres, HDB Blocks, Parks).
+- **Immersive Camera**: The camera dynamically follows your drone as you navigate the city, giving a true "pilot's eye" view of the island.
 - **AI Mission Advisor**: Powered by Gemini, generating "Shiok" missions with local flavor.
 
 ## 🛠️ Tech Stack

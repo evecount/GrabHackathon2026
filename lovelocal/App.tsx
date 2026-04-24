@@ -371,6 +371,7 @@ function App() {
         onMissionComplete={handleMissionComplete}
         controllableMission={controllableMission}
         onDroneMove={handleDroneMove}
+        dronePos={dronePos}
         hasPackage={hasPackage}
       />
       

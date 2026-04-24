@@ -4,12 +4,12 @@
 */
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Canvas, useFrame, useThree, ThreeElements } from '@react-three/fiber';
-import { MapControls, Environment, SoftShadows, Instance, Instances, Float, useTexture, Outlines, OrthographicCamera } from '@react-three/drei';
+import { MapControls, Environment, Float, useTexture, Outlines, OrthographicCamera, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { MathUtils } from 'three';
 import { Grid, BuildingType, TileData, Mission } from '../types';
 import { GRID_SIZE, BUILDINGS } from '../constants';
-import { Html } from '@react-three/drei';
+
 
 // Fix for TypeScript not recognizing R3F elements in JSX
 declare global {
@@ -907,6 +907,19 @@ const Cursor = ({ x, y, color }: { x: number, y: number, color: string }) => {
     </mesh>
   );
 };
+// --- Camera Controller ---
+const CameraFollow = ({ target }: { target: [number, number] | null }) => {
+  const { camera } = useThree();
+  useFrame(() => {
+    if (target) {
+      const [tx, tz] = target;
+      camera.position.x = MathUtils.lerp(camera.position.x, tx + 10, 0.05);
+      camera.position.z = MathUtils.lerp(camera.position.z, tz + 10, 0.05);
+      camera.lookAt(tx, 0, tz);
+    }
+  });
+  return null;
+};
 
 
 interface IsoMapProps {
@@ -918,6 +931,7 @@ interface IsoMapProps {
   onMissionComplete: (id: string) => void;
   controllableMission: Mission | null;
   onDroneMove: (pos: [number, number]) => void;
+  dronePos: [number, number];
   hasPackage: boolean;
 }
 
@@ -930,6 +944,7 @@ const IsoMap: React.FC<IsoMapProps> = ({
   onMissionComplete,
   controllableMission,
   onDroneMove,
+  dronePos,
   hasPackage
 }) => {
   const [hoveredTile, setHoveredTile] = useState<{x: number, y: number} | null>(null);
@@ -950,133 +965,102 @@ const IsoMap: React.FC<IsoMapProps> = ({
   const previewPos = hoveredTile ? gridToWorld(hoveredTile.x, hoveredTile.y) : [0,0,0];
 
   return (
-    <div className="absolute inset-0 bg-sky-900 touch-none">
-      <Canvas shadows dpr={[1, 1.5]} gl={{ antialias: true }}>
-        <OrthographicCamera makeDefault zoom={45} position={[20, 20, 20]} near={-100} far={200} />
-        
-        <MapControls 
-          enableRotate={true}
-          enableZoom={true}
-          minZoom={20}
-          maxZoom={120}
-          maxPolarAngle={Math.PI / 2.2}
-          minPolarAngle={0.1}
-          target={[0,-0.5,0]}
-        />
+    <div className="absolute inset-0 bg-slate-900 touch-none">
+      <Canvas shadows camera={{ position: [15, 15, 15], fov: 35 }}>
+        <Suspense fallback={null}>
+          <CameraFollow target={controllableMission ? dronePos : null} />
+          <ambientLight intensity={0.7} />
+          <directionalLight 
+            position={[10, 20, 10]} 
+            intensity={1.5} 
+            castShadow 
+            shadow-mapSize={[1024, 1024]} 
+          />
+          <MapControls 
+            enableRotate={true}
+            enableZoom={true}
+            maxPolarAngle={Math.PI / 2.5}
+            target={[0, 0, 0]}
+          />
 
-        <ambientLight intensity={0.5} color="#cceeff" />
-        <directionalLight
-          castShadow
-          position={[15, 20, 10]}
-          intensity={2}
-          color="#fffbeb"
-          shadow-mapSize={[2048, 2048]}
-          shadow-camera-left={-15} shadow-camera-right={15}
-          shadow-camera-top={15} shadow-camera-bottom={-15}
-        >
-        </directionalLight>
-        <Environment preset="city" />
-
-        <EnvironmentEffects />
-
-        <group>
-          {grid.map((row, y) =>
-            row.map((tile, x) => {
-              // Calculate world position once per tile
-              const [wx, _, wz] = gridToWorld(x, y);
-              
-              return (
-              <React.Fragment key={`${x}-${y}`}>
-                <GroundTile 
-                    type={tile.buildingType} 
-                    x={x} y={y} 
-                    grid={grid}
-                    onHover={handleHover}
-                    onLeave={handleLeave}
-                    onClick={onTileClick}
-                />
-                
-                {/* Building visual - apply world position to group to align with ground tile */}
-                <group position={[wx, 0, wz]} raycast={() => null}>
-                    {tile.buildingType !== BuildingType.None && tile.buildingType !== BuildingType.Road && (
-                      <>
-                        <ProceduralBuilding 
-                          type={tile.buildingType} 
-                          baseColor={BUILDINGS[tile.buildingType].color} 
-                          x={x} y={y} 
-                        />
-                        {tile.name && hoveredTile?.x === x && hoveredTile?.y === y && (
-                          <Html distanceFactor={10} position={[0, 1.5, 0]} center>
-                            <div className="bg-white/90 text-slate-900 px-2 py-0.5 rounded shadow text-[10px] font-bold whitespace-nowrap border-b-2 border-green-500">
-                              {tile.name}
-                            </div>
-                          </Html>
-                        )}
-                      </>
-                    )}
-                </group>
-              </React.Fragment>
-            )})
-          )}
-
-          {/* Visual Elements - disable pointer events */}
-          <group raycast={() => null}>
-            <TrafficSystem grid={grid} />
-            <PopulationSystem population={population} grid={grid} />
-            
-            {activeMissions.map(m => (
-              <Drone key={m.id} mission={m} onComplete={() => onMissionComplete(m.id)} />
-            ))}
-
-            <ControllableDrone 
-              mission={controllableMission} 
-              onPositionChange={onDroneMove} 
-            />
-
-            <MissionMarkers mission={controllableMission} hasPackage={hasPackage} />
-
-            {/* Placement Preview */}
-            {showPreview && hoveredTile && (
-              <group position={[previewPos[0], 0, previewPos[2]]}>
-                <Float speed={3} rotationIntensity={0} floatIntensity={0.1} floatingRange={[0, 0.1]}>
-                  <ProceduralBuilding 
-                    type={hoveredTool} 
-                    baseColor={previewColor} 
-                    x={hoveredTile.x} 
-                    y={hoveredTile.y} 
-                    transparent 
-                    opacity={0.7} 
+          <group position={[-(GRID_SIZE / 2), 0, -(GRID_SIZE / 2)]}>
+            {grid.map((row, y) =>
+              row.map((tile, x) => {
+                const [wx, _, wz] = gridToWorld(x, y);
+                return (
+                <React.Fragment key={`${x}-${y}`}>
+                  <GroundTile 
+                      type={tile.buildingType} 
+                      x={x} y={y} 
+                      grid={grid}
+                      onHover={handleHover}
+                      onLeave={handleLeave}
+                      onClick={onTileClick}
                   />
-                </Float>
-              </group>
+                  
+                  <group position={[wx, 0, wz]} raycast={() => null}>
+                      {tile.buildingType !== BuildingType.None && tile.buildingType !== BuildingType.Road && (
+                        <>
+                          <ProceduralBuilding 
+                            type={tile.buildingType} 
+                            baseColor={BUILDINGS[tile.buildingType].color} 
+                            x={x} y={y} 
+                          />
+                          {tile.name && hoveredTile?.x === x && hoveredTile?.y === y && (
+                            <Html distanceFactor={10} position={[0, 1.5, 0]} center>
+                              <div className="bg-white/90 text-slate-900 px-2 py-0.5 rounded shadow text-[10px] font-bold whitespace-nowrap border-b-2 border-green-500">
+                                {tile.name}
+                              </div>
+                            </Html>
+                          )}
+                        </>
+                      )}
+                  </group>
+                </React.Fragment>
+              )})
             )}
 
-            {/* Highlight */}
-            {hoveredTile && (
-              <Cursor 
-                x={hoveredTile.x} 
-                y={hoveredTile.y} 
-                color={isBulldoze ? '#ef4444' : (showPreview ? '#ffffff' : '#000000')} 
+            {/* Visual Systems */}
+            <group raycast={() => null}>
+              <TrafficSystem grid={grid} />
+              <PopulationSystem population={population} grid={grid} />
+              
+              {activeMissions.map(m => (
+                <Drone key={m.id} mission={m} onComplete={() => onMissionComplete(m.id)} />
+              ))}
+
+              <ControllableDrone 
+                mission={controllableMission} 
+                onPositionChange={onDroneMove} 
               />
-            )}
-          </group>
 
-          {/* Singapore Water Environment */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]} receiveShadow>
-              <planeGeometry args={[500, 500]} />
-              <meshStandardMaterial color="#006699" metalness={0.4} roughness={0.2} transparent opacity={0.8} />
-          </mesh>
-          
-          {/* Distant City Silhouettes */}
-          {Array.from({ length: 12 }).map((_, i) => (
-              <mesh key={i} position={[Math.sin(i * 0.5) * 60, -0.2, Math.cos(i * 0.5) * 60]} rotation={[0, i, 0]}>
-                  <boxGeometry args={[10 + Math.random() * 20, 5 + Math.random() * 15, 5]} />
-                  <meshStandardMaterial color="#0b1120" />
-              </mesh>
-          ))}
-        </group>
-        
-        <SoftShadows size={10} samples={8} />
+              <MissionMarkers mission={controllableMission} hasPackage={hasPackage} />
+
+              {showPreview && hoveredTile && (
+                <group position={[previewPos[0], 0, previewPos[2]]}>
+                  <Float speed={3} rotationIntensity={0} floatIntensity={0.1} floatingRange={[0, 0.1]}>
+                    <ProceduralBuilding 
+                      type={hoveredTool} 
+                      baseColor={previewColor} 
+                      x={hoveredTile.x} 
+                      y={hoveredTile.y} 
+                      transparent 
+                      opacity={0.7} 
+                    />
+                  </Float>
+                </group>
+              )}
+
+              {hoveredTile && (
+                <Cursor 
+                  x={hoveredTile.x} 
+                  y={hoveredTile.y} 
+                  color={isBulldoze ? '#ef4444' : (showPreview ? '#ffffff' : '#000000')} 
+                />
+              )}
+            </group>
+          </group>
+        </Suspense>
       </Canvas>
     </div>
   );
